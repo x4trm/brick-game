@@ -10,6 +10,11 @@ bool czyUderzony = false;
 string[] plansza;
 const string GRACZ = "^";
 const string PRZESZKODA = "#";
+const string NITRO = "N";
+int punkty = 0;
+int speed = 0;
+int czasNitro = -1; // nitro jest wylaczone
+bool czyPaliwoNitro = false;
 
 NowaPlansza(10);
 UstawGracza(pozycjaGracza);
@@ -29,6 +34,42 @@ while (!czyUderzony)
     {
       pozycjaGracza--;
     }
+    else if (klawisz.Key == ConsoleKey.Spacebar && czyPaliwoNitro)
+    {
+      if (czasNitro == -1)
+      {
+        czasNitro = 10;
+        czyPaliwoNitro = false;
+      }
+      while (Console.KeyAvailable)
+      {
+        Console.ReadKey(false);
+      }
+    }
+  }
+  if (czasNitro == 10)
+  {
+    speed += 200;
+    czasNitro--;
+  }
+  else if (czasNitro > 0)
+  {
+    czasNitro--;
+  }
+  else if (czasNitro == 0)
+  {
+    speed -= 200;
+    czasNitro = -1;
+  }
+
+  int pozycjaNajblizszegoNitro = plansza[plansza.Length - 2].IndexOf(NITRO);
+  if (pozycjaGracza == pozycjaNajblizszegoNitro)
+  {
+    czyPaliwoNitro = true;
+    // usuwanie nitro z planszy
+    char[] linia = plansza[plansza.Length - 2].ToCharArray();
+    linia[pozycjaNajblizszegoNitro] = ' ';
+    plansza[plansza.Length - 2] = new string(linia);
   }
   // Sprawdzenie kolizji z przeszkodą
 
@@ -39,25 +80,39 @@ while (!czyUderzony)
     czyUderzony = true;
     break;
   }
+  else
+  {
+    punkty++;
+    // speed++;
+  }
 
 
   // Dodawanie przeszkod
 
   int przeszkodNaPozycji = generatorLosowy.Next(3);
   string nowaPrzeszkoda = UstawPrzeszkode(przeszkodNaPozycji);
-  for (int i = plansza.Length - 2; i > 0; i--)
+
+  if (generatorLosowy.Next(20) == 0) // 5% szans na nitro
   {
-    plansza[i] = plansza[i - 1];
+    int pozycjaNitro = generatorLosowy.Next(3);
+    nowaPrzeszkoda = UstawNitro(pozycjaNitro, nowaPrzeszkoda);
   }
+  for (int i = plansza.Length - 2; i > 0; i--)
+    {
+      plansza[i] = plansza[i - 1];
+    }
   plansza[0] = nowaPrzeszkoda;
   
 
   UstawGracza(pozycjaGracza);
+  speed++;
   PokazPlansze();
-  Thread.Sleep(600);
+  Thread.Sleep(Math.Max(50, 600 - speed)); ;
 }
 Console.Clear();
 Console.WriteLine("GAME OVER");
+Console.WriteLine($"Zdobyles {punkty} punktow");
+Thread.Sleep(2000);
 Console.ReadKey();
 
 //  Metody pomocnicze
@@ -85,6 +140,12 @@ void PokazPlansze()
   {
     Console.WriteLine(linia);
   }
+  Console.WriteLine($"Punkty: {punkty}");
+  Console.WriteLine($"Nitro: {(czyPaliwoNitro ? "Gotowe" : "Brak")}");
+  if (czasNitro > 0)
+  {
+    Console.WriteLine($"Aktywne nitro: {czasNitro} sek");
+  }
 }
 
 string UstawPrzeszkode(int pozycja)
@@ -92,4 +153,11 @@ string UstawPrzeszkode(int pozycja)
   char[] linia = { ' ', ' ', ' ' };
   linia[pozycja] = PRZESZKODA[0];
   return new string(linia);
+}
+
+string UstawNitro(int pozycja,string linia)
+{
+  char[] znaki = linia.ToCharArray();
+  znaki[pozycja] = NITRO[0];
+  return new string(znaki);
 }
